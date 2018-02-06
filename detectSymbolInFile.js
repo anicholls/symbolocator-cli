@@ -7,8 +7,8 @@ const StreamZip = require('node-stream-zip')
  * @return {Promise} Resolves with an object containing whether a match was detected.
  */
 module.exports = async (path, symbolName) => {
-  return new Promise((resolve, reject) => {
-    let result = {
+  return new Promise(resolve => {
+    const result = {
       'path': path,
       'symbolName': symbolName,
       'detected': false
@@ -46,9 +46,12 @@ module.exports = async (path, symbolName) => {
         zip.close()
         resolve(result)
       })
-      .on('error', err => {
+      .on('error', ((result, err) => {
         zip.close()
-        reject(err)
-      })
+
+        result['error'] = err
+
+        resolve(result)
+      }).bind(undefined, result))
   })
 }
