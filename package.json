@@ -1,0 +1,32 @@
+{
+  "name": "symbolocator-cli",
+  "version": "1.0.0",
+  "description": "A CLI tool to detect symbols within a large number of sketch files",
+  "main": "detectSymbolInPath.js",
+  "bin": {
+    "symbolocator": "cli.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anicholls/symbolocator-cli.git"
+  },
+  "keywords": [
+    "sketch",
+    "symbols",
+    "symbolocator"
+  ],
+  "author": "Alex Nicholls",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/anicholls/symbolocator-cli/issues"
+  },
+  "homepage": "https://github.com/anicholls/symbolocator-cli#readme",
+  "dependencies": {
+    "async": "^2.6.0",
+    "meow": "^4.0.0",
+    "node-stream-zip": "^1.4.2"
+  }
+}
