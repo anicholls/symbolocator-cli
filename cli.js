@@ -7,6 +7,9 @@ const detectSymbolInPath = require('./detectSymbolInPath')
 const cli = meow(`
   Usage
     $ symbolocator [directory] <symbol name>
+
+  Flags
+    --deep, -d   Deep search within files (check for usage of the symbol)
 `)
 
 if (cli.flags.h) {
@@ -24,8 +27,9 @@ else if (cli.input.length === 1) {
 else {
   const filePath = path.resolve(cli.input[0])
   const symbolName = cli.input[1]
+  const deepSearch = cli.flags.d || cli.flags.deep
 
-  detectSymbolInPath(filePath, symbolName)
+  detectSymbolInPath(filePath, symbolName, deepSearch)
     .then(result => {
       console.log(result)
     })

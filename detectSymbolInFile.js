@@ -1,12 +1,15 @@
 const StreamZip = require('node-stream-zip')
+const deepSearch = require('./deepSearch')
+const shallowSearch = require('./shallowSearch')
 
 /**
  * detectSymbolInFile
  * @param {string} path The path to the sketch file.
  * @param {string} symbolName The name of the symbol to look for.
+ * @param {boolean} deep Whether to perform a deep search or not.
  * @return {Promise} Resolves with an object containing whether a match was detected.
  */
-module.exports = (path, symbolName) => {
+module.exports = (path, symbolName, deep) => {
   return new Promise((resolve, reject) => {
     const result = {
       path: path,
@@ -19,36 +22,18 @@ module.exports = (path, symbolName) => {
       storeEntries: true
     })
     .on('ready', () => {
-      const data = zip.entryDataSync('meta.json')
-      const metaJson = JSON.parse(data.toString())
-      const pages = metaJson['pagesAndArtboards']
-      let symbols
-
-      for (let pageId in pages) {
-        if (pages[pageId].name === 'Symbols') {
-          symbols = pages[pageId].artboards
-        }
-      }
-
-      if (!symbols) {
-        zip.close()
-
-        result['error'] = 'No page labelled "Symbols"'
-        return reject(result)
-      }
-
-      for (let symbolId in symbols) {
-        if (symbols[symbolId].name === symbolName) {
-          zip.close()
-
-          result['matched'] = true
-
-          return resolve(result)
-        }
-      }
+      const searchFn = deep ? deepSearch : shallowSearch
+      const detected = searchFn(zip, symbolName, result)
 
       zip.close()
-      resolve(result)
+
+      if (detected) {
+        result['matched'] = true
+        return resolve(result)
+      }
+      else {
+        return reject(result)
+      }
     })
     .on('error', ((result, err) => {
       zip.close()
