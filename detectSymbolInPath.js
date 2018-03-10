@@ -19,7 +19,8 @@ module.exports = (path, symbolName, progressCb) => {
         path: path,
         symbolName: symbolName,
         sketchFiles: [],
-        matchedFiles: []
+        searchedFiles: [],
+        errors: []
       }
 
       if (stats.isDirectory()) {
@@ -29,18 +30,21 @@ module.exports = (path, symbolName, progressCb) => {
         // Parse 20 files at once
         async.eachLimit(files, 20,
           (path, done) => {
-            detectSymbolInFile(path, symbolName)
+            detectSymbolInFile(path, symbolName, deep)
               .then(result => {
-                output.matchedFiles.push(result)
+                output.searchedFiles.push(result)
 
                 if (progressCb)
                   progressCb(output)
 
                 done()
               })
-              .catch(err => { throw err })
+              .catch(err => {
+                output.errors.push(err)
+                done()
+               })
           },
-          (err) => {
+          (err) => { // Called when asynch.eachLimit is done
             if (err) reject(err)
 
             resolve(output)
@@ -50,16 +54,18 @@ module.exports = (path, symbolName, progressCb) => {
       else if (stats.isFile()) {
         output.sketchFiles.push(path)
 
-        detectSymbolInFile(path, symbolName)
+        detectSymbolInFile(path, symbolName, deep)
           .then(result => {
-            output.matchedFiles.push(result)
+            output.searchedFiles.push(result)
 
             if (progressCb)
               progressCb(output)
 
             resolve(output)
           })
-          .catch(err => { throw err })
+          .catch(err => {
+            throw err
+          })
       }
     })
   })
