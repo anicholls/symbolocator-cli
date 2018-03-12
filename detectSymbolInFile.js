@@ -27,13 +27,8 @@ module.exports = (path, symbolName, deep) => {
 
       zip.close()
 
-      if (detected) {
-        result['matched'] = true
-        return resolve(result)
-      }
-      else {
-        return reject(result)
-      }
+      result['matched'] = detected
+      return resolve(result)
     })
     .on('error', ((result, err) => {
       zip.close()
