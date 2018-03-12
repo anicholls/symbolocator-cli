@@ -64,7 +64,7 @@ function _layerSearch(layers, symbolId) {
       return true
     }
 
-    if (layer.layers.length) {
+    if (layer.layers && layer.layers.length) {
       return _layerSearch(layer.layers, symbolId)
     }
   }
