@@ -1,23 +1,22 @@
-const async = require('async')
+const fork = require('child_process').fork
 const fs = require('fs')
 const path = require('path')
-const detectSymbolInFile = require('./detectSymbolInFile')
 
 /**
  * detectSymbolInPath
- * @param {string} path The path to the file or directory of sketch files.
+ * @param {string} filePath The path to the file or directory of sketch files.
  * @param {string} symbolName The name of the symbol to look for.
  * @param {boolean} deep Whether to perform a deep search or not.
  * @param {function} progressCb A callback function for each match found.
  * @return {Promise} Resolves with an object containing info about current progress.
  */
-module.exports = (path, symbolName, deep, progressCb) => {
+module.exports = (filePath, symbolName, deep, progressCb) => {
   return new Promise((resolve, reject) => {
-    fs.lstat(path, (err, stats) => {
+    fs.lstat(filePath, (err, stats) => {
       if (err) throw err
 
       const output = {
-        path: path,
+        path: filePath,
         symbolName: symbolName,
         sketchFiles: [],
         searchedFiles: [],
@@ -25,37 +24,37 @@ module.exports = (path, symbolName, deep, progressCb) => {
       }
 
       if (stats.isDirectory()) {
-        const files = _getSketchFilesFromDir(path)
+        const files = _getSketchFilesFromDir(filePath)
         output.sketchFiles = output.sketchFiles.concat(files)
 
-        // Parse 20 files at once
-        async.eachLimit(files, 20,
-          (path, done) => {
-            detectSymbolInFile(path, symbolName, deep)
-              .then(result => {
+        const groupedFiles = _getGroupedFiles(files, 20)
+
+        groupedFiles.forEach(group => {
+          const detectSymbolProcess = fork(path.join(__dirname, 'detectSymbolProcess.js'))
+
+          detectSymbolProcess
+            .on('message', result => {
+              if (result['error']) {
+                output.errors.push(result)
+              } else {
                 output.searchedFiles.push(result)
+              }
 
-                if (progressCb)
-                  progressCb(output)
+              if (progressCb) progressCb(output)
+            })
+            .on('error', (err) => {
+              reject(err)
+            })
 
-                done()
-              })
-              .catch(err => {
-                output.errors.push(err)
-                done()
-               })
-          },
-          (err) => { // Called when asynch.eachLimit is done
-            if (err) reject(err)
+          detectSymbolProcess.send([group, symbolName, deep])
+        })
 
-            resolve(output)
-          }
-        )
+        resolve(output)
       }
       else if (stats.isFile()) {
-        output.sketchFiles.push(path)
+        output.sketchFiles.push(filePath)
 
-        detectSymbolInFile(path, symbolName, deep)
+        detectSymbolInFile(filePath, symbolName, deep)
           .then(result => {
             output.searchedFiles.push(result)
 
@@ -86,7 +85,17 @@ function _getSketchFilesFromDir(dir) {
   }, [])
 }
 
-function _isSketchFile(path) {
-  const extension = path.split('.').pop()
+function _isSketchFile(filePath) {
+  const extension = filePath.split('.').pop()
   return (extension === 'sketch')
+}
+
+function _getGroupedFiles(files, size) {
+  let groupedFiles = []
+
+  while (files.length > 0) {
+    groupedFiles.push(files.splice(0, size))
+  }
+
+  return groupedFiles
 }
